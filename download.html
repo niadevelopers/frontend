@@ -9,10 +9,10 @@
 <h1>Download Your Files</h1>
 <p id="timer">05:00</p>
 <a id="downloadBtn" href="#">Download</a>
+<p id="status"></p>
 
 <script>
-
-    const BASE_URL = 'https://backend-6-898a.onrender.com';
+const BASE_URL = 'https://backend-6-898a.onrender.com';
 
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
@@ -20,6 +20,7 @@ let countdown = 300;
 
 const timerEl = document.getElementById('timer');
 const btn = document.getElementById('downloadBtn');
+const statusEl = document.getElementById('status');
 
 function updateTimer() {
   const minutes = String(Math.floor(countdown/60)).padStart(2,'0');
@@ -37,12 +38,38 @@ const interval = setInterval(updateTimer, 1000);
 
 btn.addEventListener('click', async (e) => {
   e.preventDefault();
-  const res = await fetch(`${BASE_URL}/api/download/${token}`);
-  const blob = await res.blob();
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'downloads.zip';
-  link.click();
+  statusEl.textContent = 'Preparing download...';
+  try {
+    const res = await fetch(`${BASE_URL}/api/download/${token}`);
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+    // Get file info
+    const contentType = res.headers.get('content-type');
+    const contentLength = Number(res.headers.get('content-length') || 0);
+    const blob = await res.blob();
+
+    // Decide if we should zip or not (5MB threshold)
+    const ZIP_THRESHOLD = 5 * 1024 * 1024; // 5 MB
+
+    let downloadName = 'file';
+    if (contentType.includes('application/zip') || contentLength > ZIP_THRESHOLD) {
+      downloadName += '.zip';
+    } else {
+      // try to extract extension from content-type
+      const ext = contentType.split('/')[1] || 'bin';
+      downloadName += '.' + ext;
+    }
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = downloadName;
+    link.click();
+
+    statusEl.textContent = 'Download started.';
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = 'Failed to download file. Please try again.';
+  }
 });
 </script>
 </body>
