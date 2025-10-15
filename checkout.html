@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout</title>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+<h1>Checkout</h1>
+<input type="email" id="email" placeholder="Enter your email" required>
+<button id="pay-btn">Pay Now</button>
+
+<script>
+
+  const BASE_URL = 'https://backend-6-898a.onrender.com';
+
+
+document.getElementById('pay-btn').addEventListener('click', pay);
+
+async function pay() {
+  const email = document.getElementById('email').value.trim();
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+  if (!email) return alert('Please enter a valid email');
+  if (cart.length === 0) return alert('Your cart is empty');
+
+  try {
+    // Call backend to create transaction
+    const res = await fetch(`${BASE_URL}/api/payment/create`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ email, cart })
+    });
+
+    const data = await res.json();
+    if (!data || !data.reference) return alert('Payment initialization failed');
+
+    // Setup Paystack popup
+    const handler = PaystackPop.setup({
+      key: 'pk_test_2b2ffe1c8b8f4b0da991dd13fc418bdf86dbed06', // Your public key
+      email: email,
+      amount: data.amount * 100,    // Multiply by 100 for Paystack
+      currency: 'KES',
+      ref: data.reference,
+      onClose: function(){ alert('Payment closed'); },
+      callback: function(){ 
+        window.location.href = `/download.html?token=${data.downloadToken}`;
+      }
+    });
+
+    handler.openIframe();
+
+  } catch (err) {
+    console.error('Checkout error:', err);
+    alert('An error occurred while initiating payment');
+  }
+}
+</script>
+</body>
+</html>

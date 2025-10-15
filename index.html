@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Products Shop</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Header with Cart -->
+<header>
+  <h1>Digital Products Webshop</h1>
+  <div id="cart-container">
+  <button id="cart-btn">Cart (<span id="cart-count">0</span>)</button>
+  <div id="cart-panel" class="hidden">
+    <h3>Your Cart</h3>
+    <ul id="cart-items"></ul>
+    <p>Total Items: <span id="cart-total">0</span></p>
+    <button id="checkout-btn">Proceed to Checkout</button>
+  </div>
+</div>
+
+</header>
+
+<!-- Main content -->
+<main>
+  <h2>Digital Products</h2>
+  <div id="products"></div>
+  <div id="loader">Loading...</div>
+</main>
+
+<script src="scripts.js"></script>
+</body>
+</html>

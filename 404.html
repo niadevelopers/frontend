@@ -1,0 +1,81 @@
+<!-- 404.html (put at repo root exactly) -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Redirecting...</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#111;color:#fff}
+    .box{text-align:center}
+    .loader{width:40px;height:40px;border-radius:50%;border:5px solid rgba(255,255,255,.15);border-top-color:#fff;animation:spin 1s linear infinite;margin:12px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    a{color:#7fd1ff}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Preparing your download…</h2>
+    <div class="loader" aria-hidden="true"></div>
+    <p id="msg">Please wait — we are redirecting you to your download page.</p>
+    <p>If not redirected automatically, <a id="manual" href="#">click here</a>.</p>
+  </div>
+
+<script>
+(function(){
+  // CONFIG: change to '' if your GitHub Pages site is at https://niadevelopers.github.io/
+  const FRONTEND_SUBPATH = '/frontend'; // <-- set to '' if site is at root (username.github.io)
+  const DOWNLOAD_PAGE = `${location.origin}${FRONTEND_SUBPATH}/download.html`;
+
+  const fallbackKeys = ['token','reference','ref','tx_ref','trx','id'];
+
+  function findTokenFromSearch(search) {
+    try {
+      const q = new URLSearchParams(search);
+      for (const k of fallbackKeys) { if (q.has(k)) return q.get(k); }
+    } catch(e){}
+    return null;
+  }
+  function findTokenFromHash(hash) {
+    if (!hash) return null;
+    try {
+      const h = new URLSearchParams(hash.replace(/^#/,''));
+      for (const k of fallbackKeys) { if (h.has(k)) return h.get(k); }
+    } catch(e){}
+    return null;
+  }
+  function findTokenFromPathname(path) {
+    // sometimes token appended to path: /download/TOKEN or /TOKEN etc - try to extract last segment
+    try {
+      const segs = path.split('/').filter(Boolean);
+      const last = segs[segs.length-1] || '';
+      // heuristic: token is alphanumeric 6-20 chars
+      if (/^[A-Za-z0-9_-]{6,40}$/.test(last)) return last;
+    } catch(e){}
+    return null;
+  }
+
+  // Try to find token anywhere possible
+  const token = findTokenFromSearch(location.search) || findTokenFromHash(location.hash) || findTokenFromPathname(location.pathname);
+
+  const manual = document.getElementById('manual');
+  if (token) {
+    const target = `${DOWNLOAD_PAGE}?token=${encodeURIComponent(token)}`;
+    manual.href = target;
+    // show console for debug
+    console.log('404 rescue: token found, redirecting to', target);
+    // delay small time so user sees loader + page doesn't flash to 404 content
+    setTimeout(() => {
+      // replace so back button won't loop to 404
+      location.replace(target);
+    }, 800);
+    return;
+  }
+
+  // No token found: show manual link to download page
+  manual.href = DOWNLOAD_PAGE;
+  console.log('404 rescue: no token found; linking to canonical download page', DOWNLOAD_PAGE);
+})();
+</script>
+</body>
+</html>

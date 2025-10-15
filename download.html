@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Download</title>
+</head>
+<body>
+<h1>Download Your Files</h1>
+<p id="timer">05:00</p>
+<a id="downloadBtn" href="#">Download</a>
+
+<script>
+
+    const BASE_URL = 'https://backend-6-898a.onrender.com';
+
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+let countdown = 300;
+
+const timerEl = document.getElementById('timer');
+const btn = document.getElementById('downloadBtn');
+
+function updateTimer() {
+  const minutes = String(Math.floor(countdown/60)).padStart(2,'0');
+  const seconds = String(countdown%60).padStart(2,'0');
+  timerEl.textContent = `${minutes}:${seconds}`;
+  countdown--;
+  if (countdown < 0) {
+    clearInterval(interval);
+    btn.style.display = 'none';
+    alert('Download link expired. Please purchase again.');
+  }
+}
+
+const interval = setInterval(updateTimer, 1000);
+
+btn.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const res = await fetch(`${BASE_URL}/api/download/${token}`);
+  const blob = await res.blob();
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'downloads.zip';
+  link.click();
+});
+</script>
+</body>
+</html>
