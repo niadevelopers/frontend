@@ -5,16 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Checkout</title>
 <script src="https://js.paystack.co/v1/inline.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  .download-item { margin: 10px 0; }
+  .hidden { display: none; }
+</style>
 </head>
 <body>
 <h1>Checkout</h1>
 <input type="email" id="email" placeholder="Enter your email" required>
 <button id="pay-btn">Pay Now</button>
 
+<h2 id="downloads-title" class="hidden">Your Downloads:</h2>
+<div id="downloads-list"></div>
+
 <script>
-
-  const BASE_URL = 'https://backend-6-898a.onrender.com';
-
+const BASE_URL = 'https://backend-6-898a.onrender.com';
 
 document.getElementById('pay-btn').addEventListener('click', pay);
 
@@ -26,7 +32,7 @@ async function pay() {
   if (cart.length === 0) return alert('Your cart is empty');
 
   try {
-    // Call backend to create transaction
+    // 1️⃣ Create transaction on backend
     const res = await fetch(`${BASE_URL}/api/payment/create`, {
       method: 'POST',
       headers: { 'Content-Type':'application/json' },
@@ -36,16 +42,37 @@ async function pay() {
     const data = await res.json();
     if (!data || !data.reference) return alert('Payment initialization failed');
 
-    // Setup Paystack popup
+    // 2️⃣ Setup Paystack popup
     const handler = PaystackPop.setup({
-      key: 'pk_test_2b2ffe1c8b8f4b0da991dd13fc418bdf86dbed06', // Your public key
+      key: 'pk_test_2b2ffe1c8b8f4b0da991dd13fc418bdf86dbed06', // <-- Replace with your live key
       email: email,
-      amount: data.amount * 100,    // Multiply by 100 for Paystack
+      amount: data.amount * 100,
       currency: 'KES',
       ref: data.reference,
       onClose: function(){ alert('Payment closed'); },
-      callback: function(){ 
-        window.location.href = `/download.html?token=${data.downloadToken}`;
+      callback: async function() { 
+        // 3️⃣ Verify payment immediately
+        try {
+          const verifyRes = await fetch(`${BASE_URL}/api/payment/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference: data.reference })
+          });
+
+          const verifyData = await verifyRes.json();
+          if (!verifyData.success) return alert('Payment verification failed');
+
+          // 4️⃣ Fetch downloadable items from backend
+          const downloadRes = await fetch(`${BASE_URL}/api/download/${data.downloadToken}`);
+          if (!downloadRes.ok) return alert('Unable to fetch downloads');
+
+          const downloads = await downloadRes.json(); // Expect array of {name, url, size}
+          renderDownloads(downloads);
+
+        } catch (err) {
+          console.error('Payment verification/download error:', err);
+          alert('An error occurred while processing your download');
+        }
       }
     });
 
@@ -55,6 +82,31 @@ async function pay() {
     console.error('Checkout error:', err);
     alert('An error occurred while initiating payment');
   }
+}
+
+// Render download buttons inline
+function renderDownloads(files) {
+  const title = document.getElementById('downloads-title');
+  const list = document.getElementById('downloads-list');
+
+  title.classList.remove('hidden');
+  list.innerHTML = '';
+
+  files.forEach(file => {
+    const div = document.createElement('div');
+    div.classList.add('download-item');
+
+    // Decide whether to zip large files (example: >5MB)
+    const isZip = file.size > 5 * 1024 * 1024;
+    const href = isZip ? `${BASE_URL}/api/download-zip/${file.token}` : file.url;
+
+    div.innerHTML = `
+      <a href="${href}" download="${file.name}" target="_blank">
+        ${file.name} ${isZip ? '(zipped)' : ''}
+      </a>
+    `;
+    list.appendChild(div);
+  });
 }
 </script>
 </body>
